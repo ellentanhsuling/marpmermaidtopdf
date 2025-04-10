@@ -171,19 +171,27 @@ def create_pdf(html_content):
         tmp.write(html_content.encode('utf-8'))
         tmp_path = tmp.name
     
-    # Create PDF using WeasyPrint
-    pdf_path = tmp_path + '.pdf'
-    HTML(tmp_path).write_pdf(pdf_path)
-    
-    # Read the PDF content
-    with open(pdf_path, 'rb') as f:
-        pdf_content = f.read()
-    
-    # Clean up temporary files
-    os.unlink(tmp_path)
-    os.unlink(pdf_path)
-    
-    return pdf_content
+    try:
+        # Create PDF using WeasyPrint with updated approach
+        pdf_path = tmp_path + '.pdf'
+        # Use the string parameter instead of file path
+        html = HTML(string=html_content)
+        html.write_pdf(pdf_path)
+        
+        # Read the PDF content
+        with open(pdf_path, 'rb') as f:
+            pdf_content = f.read()
+        
+        return pdf_content
+    except Exception as e:
+        st.error(f"Error generating PDF: {str(e)}")
+        return None
+    finally:
+        # Clean up temporary files
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        if os.path.exists(pdf_path) and os.path.isfile(pdf_path):
+            os.unlink(pdf_path)
 
 # Function to create download link
 def get_download_link(content, filename, text):
@@ -214,14 +222,16 @@ else:  # Mermaid
 # PDF download button
 if st.button("Generate PDF"):
     pdf_content = create_pdf(html_content)
-    st.markdown(
-        get_download_link(
-            pdf_content, 
-            f"{render_type.lower()}_output.pdf", 
-            f"📥 Download {render_type} as PDF"
-        ),
-        unsafe_allow_html=True
-    )
+    if pdf_content:  # Only create download link if pdf_content is not None
+        st.markdown(
+            get_download_link(
+                pdf_content, 
+                f"{render_type.lower()}_output.pdf", 
+                f"📥 Download {render_type} as PDF"
+            ),
+            unsafe_allow_html=True
+        )
+    # The error message is already displayed in create_pdf function
 
 # Footer
 st.markdown("---")
